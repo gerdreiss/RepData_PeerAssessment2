@@ -1,0 +1,81 @@
+# Storms in the United States Between 1950 and 2011
+========================================================================================================
+
+TODO: Synopsis describing the analysis
+
+## Data Processing
+
+The data has been processed and analysed using the following environment settings:
+
+```{r}
+sessionInfo()
+```
+
+Install and import libraries that are going to be used for the analysis:
+
+```{r install_packages, results='hide', message=F, warning=F}
+## install dplyr if not already done so
+if (("dplyr" %in% (installed.packages())) == F) {
+        install.packages("dplyr")
+}
+
+library(dplyr)
+```
+
+Download and read the data for the analysis:
+
+```{r read_data, cache=TRUE, results='hide', message=F, warning=F}
+## the name of the dataset file
+data_file <- "StormData.csv"
+
+## download dataset file if not already done so
+if (!file.exists(data_file)) {
+        ## check OS
+        is_windows <- .Platform$OS.type == "windows"
+        ## download the dataset
+        download.file(url = "https://d396qusza40orc.cloudfront.net/repdata/data/StormData.csv.bz2", 
+                      destfile = "StormData.csv.bz2",
+                      method = ifelse(is_windows, "auto", "curl"))
+        system("bunzip2 StormData.csv.bz2")
+}
+
+## read the entire dataset into a data frame wth columns of types numeric and character. We will convert the data types
+## of some of them according to our needs
+rawdata <- read.csv(file = data_file, stringsAsFactors = F)
+```
+
+Now we will take a look at the data and make some transformations.
+First, the structure of the data frame:
+```{r}
+str(rawdata)
+```
+
+For our analysis we're interested in the following columns:
+
+- EVTYPE - The event type
+- FATALITIES - The number of fatalities
+- INJURIES - The number of injuries
+- PROPDMG - The damage to the properties
+- PROPDMGEXP - 
+- CROPDMG - The damage to the crops
+- CROPDMGEXP - 
+
+Select only data we're interested in:
+```{r}
+data <- select(tbl_df(rawdata), EVTYPE,FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP)
+```
+
+
+
+## Results
+
+
+
+
+
+
+
+
+
+
+
