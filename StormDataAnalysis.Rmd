@@ -1,4 +1,4 @@
-# Storms in the United States Between 1950 and 2011
+# Storms in the United States 1950 - 2011
 ========================================================================================================
 
 TODO: Synopsis describing the analysis
@@ -11,7 +11,7 @@ The data has been processed and analysed using the following environment setting
 sessionInfo()
 ```
 
-Install and import libraries that are going to be used for the analysis:
+Following libraries that are going to be used for the analysis and need installing and attaching:
 
 ```{r install_packages, results='hide', message=F, warning=F}
 ## install dplyr if not already done so
@@ -30,12 +30,9 @@ data_file <- "StormData.csv"
 
 ## download dataset file if not already done so
 if (!file.exists(data_file)) {
-        ## check OS
-        is_windows <- .Platform$OS.type == "windows"
         ## download the dataset
         download.file(url = "https://d396qusza40orc.cloudfront.net/repdata/data/StormData.csv.bz2", 
-                      destfile = "StormData.csv.bz2",
-                      method = ifelse(is_windows, "auto", "curl"))
+                      destfile = "StormData.csv.bz2", method = "curl")
         system("bunzip2 StormData.csv.bz2")
 }
 
@@ -44,9 +41,9 @@ rawdata <- read.csv(file = data_file)
 ```
 
 Now we will take a look at the data and make some transformations.
-First, the structure of the data frame:
+First, view the structure of the data frame:
 
-```{r}
+```{r data_str}
 str(rawdata)
 ```
 
@@ -60,9 +57,9 @@ For our analysis we're interested in the following columns as described in the [
 - CROPDMG - The damage to the crops
 - CROPDMGEXP - The exponent used to calculate the total amount of crop damage
 
-Select only data we're interested in, and transform in formats that make the analysis easier:
+Select only data we're interested in, and transform values in formats that make the analysis easier:
 
-```{r select_data}
+```{r select_convert_data}
 convert_exp <- function(exponent) {
         sapply(exponent, function(exponent) {
                 ## try converting to numeric
@@ -88,7 +85,8 @@ data <- tbl_df(rawdata) %>%
                PROPDMGEXP = convert_exp(PROPDMGEXP), 
                CROPDMGEXP = convert_exp(CROPDMGEXP),
                PROPDMGCASH = PROPDMG * 10^PROPDMGEXP,
-               CROPDMGCASH = CROPDMG * 10^CROPDMGEXP)
+               CROPDMGCASH = CROPDMG * 10^CROPDMGEXP,
+               TOTALDMGCASH = PROPDMGCASH + CROPDMGCASH)
 
 ## print out the first 10 lines to see the result of the transformation above:
 head(data, 10)
@@ -109,7 +107,7 @@ don't make any sense:
 data$EVTYPE[grepl("Summary", data$EVTYPE)]
 ```
 
-The values are all summaries of some other dates. Checking the values in the raw data:
+The values are all summaries of some other dates. Checking the values of the raw data:
 
 ```{r check_rawdata}
 summaries <- rawdata[grepl("Summary", rawdata$EVTYPE), ]
@@ -127,24 +125,35 @@ All these columns contain zero (0) values, so we can discard them:
 data <- filter(data, grepl("Summary", EVTYPE) == FALSE)
 ```
 
-Beside the summary rows, we've seen values that are slightly different, but have very similar meaning in terms of the type of the event, e.g. e.g. "coastal flood"" and "coastal flooding". We will try to merge them into a smaller set of event types to make the analysis exacter:
+Beside the summary rows, we've seen values that are slightly different, but have very similar meaning in terms of the type of the event, e.g. "coastal flood"" and "coastal flooding". We will try to merge them into a smaller set of event types to make the analysis exacter:
 
+```{r merge_evtypes, cache=TRUE}
+merge_evtypes <- function(evtype) {
+        upr = toupper(evtype)
+        new_evtype = ifelse(grepl("HURRICANE|TYPHOON", upr), "HURRICANE",
+                ifelse(grepl("(THUNDERSTORM|TSTM).?WIND", upr) & !grepl("NON", upr), "THUNDERSTORM WIND", 
+                ifelse(grepl("(HEAVY|EXCESSIVE|UNSEASONAL).?RAIN", upr) & !grepl("THUNDERSTORM|TSTM|NON", upr), "HEAVY RAIN",
+                ifelse(grepl("STORM SURGE", upr), "STORM SURGE", 
+                ifelse(grepl("(GRASS|WILD|FOREST).?FIRE", upr), "WILD FIRE",
+                ifelse(grepl("HEAT", upr), "HEAT", 
+                ifelse(grepl("COLD|FREEZE|FROST", upr) & !grepl("AIR|FOG|WET|SNOW", upr), "", 
+                ifelse(grepl("(HIGH|BLOWING|STRONG).?WIND", upr), "",
+                ifelse(grepl("FLOOD", upr), "FLOOD",
+                ifelse(grepl("TROPICAL.?STORM", upr), "TROPICAL STORM", 
+                ifelse(grepl("FOG", upr), "FOG",
+                ifelse(grepl("WINTRY|WINTER", upr), "WINTER WEATHER", upr))))))))))))
 
+        return(new_evtype)
+}
+data$EVTYPE <- sapply(data$EVTYPE, merge_evtypes)
+```
 
-- Analyse EVTYPE values to filter our similar event type descriptions (e.g. "coastal flood"" and "coastal flooding"") to have a coherent list of event types.  
-- Convert *EXP values to exponents according to the code book ("A multiplier where Hundred 
-(H), Thousand (K), Million (M), Billion (B)")
-- Create columns where the exponents are used to create the real values
-- Create a column to calculate the total damage (PROP* + CROP*)
-- Answer the two questions by analysing the resulting data
-
-...1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
-...2. Across the United States, which types of events have the greatest economic consequences?
 
 ## Results
 
-
-Presenting the results
+1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?  
+2. Across the United States, which types of events have the greatest economic consequences?  
+ 
 
 
 
