@@ -131,10 +131,8 @@ Beside the summary rows, we've seen values that are slightly different, but have
 merge_evtypes <- function(evtype) {
         UPR = toupper(gsub("^\\s+|\\s+$", "", evtype))
         new_evtype = ifelse(grepl("HURRICANE|TYPHOON", UPR), "HURRICANE",
-                ifelse(grepl(".*(THUNERSTORM|THUDERSTORM|THUNDERSTORMW|THUNDERSTORM|THUNDEERSTORM|TSTM).*", UPR) & 
-                      !grepl("NON", UPR), "THUNDERSTORM WIND", 
-                ifelse(grepl("(HEAVY|EXCESSIVE|UNSEASONAL).?RAIN", UPR) & 
-                      !grepl("THUNDERSTORM|TSTM|NON", UPR), "HEAVY RAIN",
+                ifelse(grepl("(THUNDER|THUNER|THUDER|THUNDEER|TUNDER|TSTM).?", UPR) & !grepl("NON", UPR), "THUNDERSTORM", 
+                ifelse(grepl("(RECORD|HEAVY|EXCESSIVE|UNSEASONAL).?RAIN.*", UPR) & !grepl("THUNDERSTORM|TSTM|NON", UPR), "HEAVY RAIN",
                 ifelse(grepl("STORM SURGE", UPR), "STORM SURGE", 
                 ifelse(grepl("(GRASS|WILD|FOREST).?FIRE", UPR), "WILD FIRE",
                 ifelse(grepl("HEAT", UPR), "HEAT", 
@@ -148,11 +146,21 @@ merge_evtypes <- function(evtype) {
                 ifelse(grepl("BLOWING.?SNOW", UPR), "BLOWING SNOW",
                 ifelse(grepl("DRY.?MICROBURST", UPR), "DRY MICROBURST",
                 ifelse(grepl("FREEZING.?(DRIZZLE|RAIN|SPRAY)", UPR), "FREEZING RAIN",
-                ifelse(grepl("HEAVY.?SNOW", UPR), "HEAVY SNOW",
+                ifelse(grepl("(RECORD|HEAVY).?SNOW", UPR), "HEAVY SNOW",
                 ifelse(grepl("ICE|ICY", UPR), "ICE",
                 ifelse(grepl("LIGHTNING", UPR), "LIGHTNING",
                 ifelse(grepl("RIP.?CURRENT.?", UPR), "RIP CURRENT",
-                ifelse(grepl("TORNADO|TORNDAO", UPR), "TORNADO", UPR)))))))))))))))))))))
+                ifelse(grepl("TORNADO|TORNDAO", UPR), "TORNADO",
+                ifelse(grepl("GUSTY.*WIND.*", UPR), "GUSTY WIND",
+                ifelse(grepl("COLD.*WET.*", UPR), "COLD AND WET",
+                ifelse(grepl("EXTREME.*WIND.*(DAMAGE|STORM)*", UPR), "EXTREME WIND",
+                ifelse(grepl("HIGH.*SURF.*", UPR), "HIGH SURF",
+                ifelse(grepl("LAKE.*EFFECT.*SNOW", UPR), "LAKE EFFECT SNOW",
+                ifelse(grepl("LAND.*(SLIDE|SLIDES|SLUMP|SPOUT)", UPR), "LAND SLIDE",
+                ifelse(grepl("LIGHTING|LIGHTNING|LIGNTNING", UPR), "LIGHTNING",
+                ifelse(grepl("MICROBURST", UPR), "MICROBURST",
+                ifelse(grepl("MUD.*SLIDE.*", UPR), "MUD SLIDE",
+                ifelse(grepl("WATERSPOUT.*", UPR), "WATERSPOUT", UPR)))))))))))))))))))))))))))))))
 
         return(new_evtype)
 }
