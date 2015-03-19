@@ -1,7 +1,9 @@
 # Storms in the United States 1950 - 2011
 ========================================================================================================
 
-TODO: Synopsis describing the analysis
+As stated in the introduction to the course assignment, storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+In this report we try to answer some basic questions about severe weather events, specifically which weather events cause the most human and economic damage. To do that we use the dataset created by the U.S. National Oceanic and Atmospheric Administration's (NOAA) that contains characteristics of major storms and weather events in the United States, including estimates of any fatalities and injuries, and property and crop damage. Our analysis has revealed that tornadoes, heat and floods are the main causes for fatalities, tornadoes are causing the most injuries, and floods, tornadoes, thunderstorms and hails are causing the most economic damage in the US.
 
 ## Data Processing
 
@@ -11,7 +13,7 @@ The data has been processed and analysed using the following environment setting
 sessionInfo()
 ```
 
-Following libraries that are going to be used for the analysis and need installing and attaching:
+Following libraries that are used for the analysis, and need installing and loading:
 
 ```{r install_packages, results='hide', message=F, warning=F}
 ## install dplyr if not already done so
@@ -22,12 +24,17 @@ if (("dplyr" %in% (installed.packages())) == F) {
 if (("quantmod" %in% (installed.packages())) == F) {
         install.packages("quantmod")
 }
+## install quantmod if not already done so
+if (("ggplot2" %in% (installed.packages())) == F) {
+        install.packages("ggplot2")
+}
 
 library(dplyr)
 library(quantmod)
+library(ggplot2)
 ```
 
-Download and read the data for the analysis:
+We download the data for the analysis from the [course file](https://d396qusza40orc.cloudfront.net/repdata/data/StormData.csv.bz2) repository as indicated in the assessment description:
 
 ```{r read_data, cache=TRUE, results='hide', message=F, warning=F}
 ## the name of the dataset file
@@ -46,23 +53,26 @@ rawdata <- read.csv(file = data_file)
 ```
 
 Now we will take a look at the data and make some transformations.
-First, view the structure of the data frame:
+First, check the structure of the data frame:
 
 ```{r data_str}
 str(rawdata)
 ```
 
-For our analysis we're interested in the following columns as described in the [Code Book](http://ire.org/media/uploads/files/datalibrary/samplefiles/Storm%20Events/layout08.doc):
+For our analysis we're interested in the following columns as they are described in the code book (National Climatic Data Center's [record layout document](http://ire.org/media/uploads/files/datalibrary/samplefiles/Storm%20Events/layout08.doc) as referenced on the [Investigative Reporers & Editors](http://ire.org/nicar/database-library/databases/storm-events/) website.):
 
-- EVTYPE - The event type
-- FATALITIES - The number of direct fatalities
-- INJURIES - The number of direct injuries
-- PROPDMG - The damage to the properties
-- PROPDMGEXP - The exponent used to calculate the total amount of property damage
-- CROPDMG - The damage to the crops
-- CROPDMGEXP - The exponent used to calculate the total amount of crop damage
+| Column        | Description |
+| ------------- |:-----------:|
+| BGN_DATE | The date when the event began |
+| EVTYPE | The event type |
+| FATALITIES | The number of direct fatalities |
+| INJURIES | The number of direct injuries |
+| PROPDMG | The damage to the properties |
+| PROPDMGEXP | The exponent used to calculate the total amount of property damage |
+| CROPDMG | The damage to the crops |
+| CROPDMGEXP | The exponent used to calculate the total amount of crop damage |
 
-Select only data we're interested in, and transform values in formats that make the analysis easier:
+Using the following code we select the data we're interested in, and transform values to formats that make the analysis easier:
 
 ```{r select_convert_data}
 ## create function that will convert character vectors to numeric exponents
@@ -88,6 +98,7 @@ convert_exp <- function(exponent) {
 data <- tbl_df(rawdata) %>%
         ## select the data we're interested in
         select(BGN_DATE, EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP) %>%
+        ## transform the data into formats we need for our analysis
         mutate(YEAR = as.numeric(format(as.Date(as.character(BGN_DATE), format="%m/%d/%Y %H:%M:%S"), "%Y")),
                EVTYPE = as.character(EVTYPE), 
                ## convert exponents using function convert_exp
@@ -100,9 +111,6 @@ data <- tbl_df(rawdata) %>%
                TOTALDMGCASH = PROPDMGCASH + CROPDMGCASH,
                ## drop BGN_DATE column
                BGN_DATE = NULL)
-
-## print out the first 10 lines to see the result of the transformation above:
-head(data, 10)
 ```
 
 Check the values for some of the columns by printing out the unique values:
@@ -113,8 +121,7 @@ unique(data$PROPDMGEXP)
 unique(data$CROPDMGEXP)
 ```
 
-The values for PROPDMGEXP and CROPDMGEXP seem reasonable, but there are some values in the column EVTYPE that 
-don't make any sense:
+The values for PROPDMGEXP and CROPDMGEXP seem reasonable, but there are some values in the column EVTYPE that don't make any sense:
 
 ```{r useless_evtype}
 data$EVTYPE[grepl("Summary", data$EVTYPE)]
@@ -144,15 +151,14 @@ Considering that the data starts from years 1950 - 2011 we should adjust the dam
 invisible(getSymbols("CPIAUCSL", src='FRED'))
 avg_cpi <- apply.yearly(CPIAUCSL, mean)
 conversion_factors <- as.data.frame(avg_cpi / as.numeric(avg_cpi['2011']))
-conversion_factors$year = as.numeric(format(as.Date(rownames(conversion_factors)), '%Y'))
+conversion_factors$YEAR = as.numeric(format(as.Date(rownames(conversion_factors)), '%Y'))
 colnames(conversion_factors)[1] = 'FACTOR'
 
-data = merge(data, conversion_factors, by='year')
+data = merge(data, conversion_factors, by='YEAR')
 data$TOTALDMGCASH = data$TOTALDMGCASH * data$FACTOR
 ```
 
-
-Beside the summary rows, we've seen values that are slightly different, but have very similar meaning in terms of the type of the event, e.g. "coastal flood"" and "coastal flooding". We will try to merge them into a smaller set of event types to make the analysis exacter:
+Beside the summary rows, we've seen values that are slightly different, but have very similar meaning in terms of the type of the event, e.g. "FLOOD"" and "FLOODING", or contain typos, e.g. "THUNDER" and "THUNER"" . We will try to merge them into a smaller set of event types to make the analysis exacter:
 
 ```{r merge_evtypes, cache=TRUE}
 ## create function that will merge similar event type names
@@ -196,32 +202,85 @@ merge_evtypes <- function(evtype) {
 data$EVTYPE <- sapply(data$EVTYPE, merge_evtypes)
 ```
 
-
 ## Results
 
 1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?  
 
-Calculate total fatalities and injuries per event type:
+Calculate total fatalities and injuries per event type and select the top ten harmful events:
 
 ```{r population_damage}
-pop_harm <- data %>%
+fatalities <- data
+        ## group data by event type
         group_by(EVTYPE) %>%
-        summarize(total_fatalities = sum(FATALITIES), total_injuries = sum(INJURIES)) %>%
-        filter(EVTYPE != "" & (total_fatalities > 0 | total_injuries > 0))
+        ## calculate total fatalities per event type
+        summarize(FATALITIES = sum(FATALITIES)) %>%
+        ## discard data where event type value is empty, or fatalities value is zero
+        filter(EVTYPE != "" & FATALITIES > 0) %>%
+        ## sort by fatalities in descending order
+        arrange(desc(FATALITIES)) %>%
+        ## selet the first 10 rows
+        slice(1:10)
+
+injuries <- data %>%
+        ## group data by event type
+        group_by(EVTYPE) %>%
+        ## calculate total fatalities per event type
+        summarize(INJURIES = sum(INJURIES)) %>%
+        ## discard data where event type value is empty, or fatalities value is zero
+        filter(EVTYPE != "" & INJURIES > 0) %>%
+        ## sort by fatalities in descending order
+        arrange(desc(INJURIES)) %>%
+        ## selet the first 10 rows
+        slice(1:10)
+        
 ```
 
+Plot fatalities by event type:
+
+```{r plot_fatalities}
+ggplot(data = fatalities, aes(x = EVTYPE, y = FATALITIES)) +
+        geom_bar(position="dodge", stat='identity', colour="black", fill="blue") +
+        coord_flip() +
+        ggtitle("Total fatalities per weather event type") +
+        scale_x_discrete(limits = fatalities$EVTYPE)
+```
+
+The plot above shows that the most harmful weather events to human population are tornadoes, heat waves and floods
+
+Plot injuries by event type:
+
+```{r plot_injuries}
+ggplot(data = injuries, aes(x = EVTYPE, y = INJURIES)) +
+        geom_bar(position="dodge", stat='identity', colour="black", fill="blue") +
+        coord_flip() +
+        ggtitle("Total injuries per weather event type") +
+        scale_x_discrete(limits = injuries$EVTYPE)
+```
+
+The plot above shows that the weather event that causes the most injuries are tornadoes
 
 2. Across the United States, which types of events have the greatest economic consequences?  
  
 ```{r economic_damage}
-eco_harm <- data %>%
+economic_damage <- data %>%
         group_by(EVTYPE) %>%
-        summarize(total_damage = sum(TOTALDMGCASH)) %>%
-        filter(EVTYPE != "" & total_damage > 0)
+        summarize(DAMAGE = sum(TOTALDMGCASH)) %>%
+        filter(EVTYPE != "" & DAMAGE > 0) %>%
+        arrange(desc(DAMAGE)) %>%
+        slice(1:10)
 ```
 
+Plot economic damage by event type:
 
+```{r plot_injuries}
+ggplot(data = economic_damage, aes(x = EVTYPE, y = DAMAGE)) +
+        geom_bar(position="dodge", stat='identity', colour="black", fill="blue") +
+        coord_flip() +
+        ggtitle("Total economic damage per weather event type") +
+        scale_x_discrete(limits = economic_damage$EVTYPE)
+```
 
+In this plot we can see that the most economically damaging events are floods, tornadoes and thunderstorms.
 
 
 
