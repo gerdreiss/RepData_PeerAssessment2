@@ -18,8 +18,13 @@ Following libraries that are going to be used for the analysis and need installi
 if (("dplyr" %in% (installed.packages())) == F) {
         install.packages("dplyr")
 }
+## install quantmod if not already done so
+if (("quantmod" %in% (installed.packages())) == F) {
+        install.packages("quantmod")
+}
 
 library(dplyr)
+library(quantmod)
 ```
 
 Download and read the data for the analysis:
@@ -60,6 +65,7 @@ For our analysis we're interested in the following columns as described in the [
 Select only data we're interested in, and transform values in formats that make the analysis easier:
 
 ```{r select_convert_data}
+## create function that will convert character vectors to numeric exponents
 convert_exp <- function(exponent) {
         sapply(exponent, function(exponent) {
                 ## try converting to numeric
@@ -78,15 +84,22 @@ convert_exp <- function(exponent) {
                 return(n_exp)
         })
 }
-
+## using the function convert_exp convert the columns PROPDMGEXP and CROPDMGEXP into numeric exponents
 data <- tbl_df(rawdata) %>%
-        select(EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP) %>%
-        mutate(EVTYPE = as.character(EVTYPE), 
+        ## select the data we're interested in
+        select(BGN_DATE, EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP) %>%
+        mutate(YEAR = as.numeric(format(as.Date(as.character(BGN_DATE), format="%m/%d/%Y %H:%M:%S"), "%Y")),
+               EVTYPE = as.character(EVTYPE), 
+               ## convert exponents using function convert_exp
                PROPDMGEXP = convert_exp(PROPDMGEXP), 
                CROPDMGEXP = convert_exp(CROPDMGEXP),
+               ## calculate damage using the converted numeric exponents
                PROPDMGCASH = PROPDMG * 10^PROPDMGEXP,
                CROPDMGCASH = CROPDMG * 10^CROPDMGEXP,
-               TOTALDMGCASH = PROPDMGCASH + CROPDMGCASH)
+               ## calculate total economic damage
+               TOTALDMGCASH = PROPDMGCASH + CROPDMGCASH,
+               ## drop BGN_DATE column
+               BGN_DATE = NULL)
 
 ## print out the first 10 lines to see the result of the transformation above:
 head(data, 10)
@@ -125,9 +138,24 @@ All these columns contain zero (0) values, so we can discard them:
 data <- filter(data, grepl("Summary", EVTYPE) == FALSE)
 ```
 
+Considering that the data starts from years 1950 - 2011 we should adjust the damage sums for inflation:
+
+```{r adjusting_inflation}
+invisible(getSymbols("CPIAUCSL", src='FRED'))
+avg_cpi <- apply.yearly(CPIAUCSL, mean)
+conversion_factors <- as.data.frame(avg_cpi / as.numeric(avg_cpi['2011']))
+conversion_factors$year = as.numeric(format(as.Date(rownames(conversion_factors)), '%Y'))
+colnames(conversion_factors)[1] = 'FACTOR'
+
+data = merge(data, conversion_factors, by='year')
+data$TOTALDMGCASH = data$TOTALDMGCASH * data$FACTOR
+```
+
+
 Beside the summary rows, we've seen values that are slightly different, but have very similar meaning in terms of the type of the event, e.g. "coastal flood"" and "coastal flooding". We will try to merge them into a smaller set of event types to make the analysis exacter:
 
 ```{r merge_evtypes, cache=TRUE}
+## create function that will merge similar event type names
 merge_evtypes <- function(evtype) {
         UPR = toupper(gsub("^\\s+|\\s+$", "", evtype))
         new_evtype = ifelse(grepl("HURRICANE|TYPHOON", UPR), "HURRICANE",
@@ -164,6 +192,7 @@ merge_evtypes <- function(evtype) {
 
         return(new_evtype)
 }
+## merge similar event types
 data$EVTYPE <- sapply(data$EVTYPE, merge_evtypes)
 ```
 
