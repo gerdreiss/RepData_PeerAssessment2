@@ -20,14 +20,15 @@ sessionInfo()
 ## Running under: OS X 10.10.2 (Yosemite)
 ## 
 ## locale:
-## [1] en_GB.UTF-8/en_GB.UTF-8/en_GB.UTF-8/C/en_GB.UTF-8/en_GB.UTF-8
+## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
 ## 
 ## attached base packages:
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## loaded via a namespace (and not attached):
 ## [1] digest_0.6.8     evaluate_0.5.5   formatR_1.0      htmltools_0.2.6 
-## [5] knitr_1.9        rmarkdown_0.3.10 stringr_0.6.2    tools_3.1.3
+## [5] knitr_1.9        rmarkdown_0.3.10 stringr_0.6.2    tools_3.1.3     
+## [9] yaml_2.1.13
 ```
 
 Following libraries that are used for the analysis, and need installing and loading:
@@ -876,10 +877,11 @@ ggplot(data = fatalities, aes(x = EVTYPE, y = FATALITIES)) +
         geom_bar(position="dodge", stat='identity', colour="black", fill="blue") +
         coord_flip() +
         ggtitle("Total fatalities per weather event type") +
+        xlab("Weather events") + ylab("Number of fatalities") +
         scale_x_discrete(limits = fatalities$EVTYPE)
 ```
 
-<img src="StormDataAnalysis_files/figure-html/plot_fatalities-1.png" title="" alt="" width="672" />
+![](StormDataAnalysis_files/figure-html/plot_fatalities-1.png) 
 
 The plot above shows that the most harmful weather events to human population are tornadoes, heat waves and floods
 
@@ -891,10 +893,11 @@ ggplot(data = injuries, aes(x = EVTYPE, y = INJURIES)) +
         geom_bar(position="dodge", stat='identity', colour="black", fill="blue") +
         coord_flip() +
         ggtitle("Total injuries per weather event type") +
+        xlab("Weather events") + ylab("Number of injuries") +
         scale_x_discrete(limits = injuries$EVTYPE)
 ```
 
-<img src="StormDataAnalysis_files/figure-html/plot_injuries-1.png" title="" alt="" width="672" />
+![](StormDataAnalysis_files/figure-html/plot_injuries-1.png) 
 
 The plot above shows that the weather event that causes the most injuries are tornadoes
 
@@ -918,10 +921,11 @@ ggplot(data = economic_damage, aes(x = EVTYPE, y = DAMAGE)) +
         geom_bar(position="dodge", stat='identity', colour="black", fill="blue") +
         coord_flip() +
         ggtitle("Total economic damage per weather event type") +
+        xlab("Weather events") + ylab("Damage in $") +
         scale_x_discrete(limits = economic_damage$EVTYPE)
 ```
 
-<img src="StormDataAnalysis_files/figure-html/plot_economic_damage-1.png" title="" alt="" width="672" />
+![](StormDataAnalysis_files/figure-html/plot_economic_damage-1.png) 
 
 In this plot we can see that the most economically damaging events are floods, tornadoes and thunderstorms.
 

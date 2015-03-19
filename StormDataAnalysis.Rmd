@@ -1,3 +1,10 @@
+---
+output:
+  html_document:
+    fig_caption: yes
+    keep_md: yes
+    toc: yes
+---
 Storms in the United States 1950 - 2011
 ========================================================================================================
 
@@ -244,6 +251,7 @@ ggplot(data = fatalities, aes(x = EVTYPE, y = FATALITIES)) +
         geom_bar(position="dodge", stat='identity', colour="black", fill="blue") +
         coord_flip() +
         ggtitle("Total fatalities per weather event type") +
+        xlab("Weather events") + ylab("Number of fatalities") +
         scale_x_discrete(limits = fatalities$EVTYPE)
 ```
 
@@ -256,6 +264,7 @@ ggplot(data = injuries, aes(x = EVTYPE, y = INJURIES)) +
         geom_bar(position="dodge", stat='identity', colour="black", fill="blue") +
         coord_flip() +
         ggtitle("Total injuries per weather event type") +
+        xlab("Weather events") + ylab("Number of injuries") +
         scale_x_discrete(limits = injuries$EVTYPE)
 ```
 
@@ -279,6 +288,7 @@ ggplot(data = economic_damage, aes(x = EVTYPE, y = DAMAGE)) +
         geom_bar(position="dodge", stat='identity', colour="black", fill="blue") +
         coord_flip() +
         ggtitle("Total economic damage per weather event type") +
+        xlab("Weather events") + ylab("Damage in $") +
         scale_x_discrete(limits = economic_damage$EVTYPE)
 ```
 
