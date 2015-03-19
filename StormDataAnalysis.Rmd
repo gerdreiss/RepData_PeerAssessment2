@@ -1,4 +1,4 @@
-# Storms in the United States 1950 - 2011
+Storms in the United States 1950 - 2011
 ========================================================================================================
 
 As stated in the introduction to the course assignment, storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
@@ -62,7 +62,7 @@ str(rawdata)
 For our analysis we're interested in the following columns as they are described in the code book (National Climatic Data Center's [record layout document](http://ire.org/media/uploads/files/datalibrary/samplefiles/Storm%20Events/layout08.doc) as referenced on the [Investigative Reporers & Editors](http://ire.org/nicar/database-library/databases/storm-events/) website.):
 
 | Column        | Description |
-| ------------- |:-----------:|
+| ------------- |:----------- |
 | BGN_DATE | The date when the event began |
 | EVTYPE | The event type |
 | FATALITIES | The number of direct fatalities |
@@ -147,7 +147,7 @@ data <- filter(data, grepl("Summary", EVTYPE) == FALSE)
 
 Considering that the data starts from years 1950 - 2011 we should adjust the damage sums for inflation:
 
-```{r adjusting_inflation}
+```{r adjusting_inflation, results='hide', message=F, warning=F}
 invisible(getSymbols("CPIAUCSL", src='FRED'))
 avg_cpi <- apply.yearly(CPIAUCSL, mean)
 conversion_factors <- as.data.frame(avg_cpi / as.numeric(avg_cpi['2011']))
@@ -166,7 +166,7 @@ merge_evtypes <- function(evtype) {
         UPR = toupper(gsub("^\\s+|\\s+$", "", evtype))
         new_evtype = ifelse(grepl("HURRICANE|TYPHOON", UPR), "HURRICANE",
                 ifelse(grepl("(THUNDER|THUNER|THUDER|THUNDEER|TUNDER|TSTM).?", UPR) & !grepl("NON", UPR), "THUNDERSTORM", 
-                ifelse(grepl("(RECORD|HEAVY|EXCESSIVE|UNSEASONAL).?RAIN.*", UPR) & !grepl("THUNDERSTORM|TSTM|NON", UPR), "HEAVY RAIN",
+                ifelse(grepl("(RECORD|HEAVY|EXCESSIVE|UNSEASONAL).?RAIN.*", UPR) & !grepl("THUNDER|TSTM|NON", UPR), "HEAVY RAIN",
                 ifelse(grepl("STORM SURGE", UPR), "STORM SURGE", 
                 ifelse(grepl("(GRASS|WILD|FOREST).?FIRE", UPR), "WILD FIRE",
                 ifelse(grepl("HEAT", UPR), "HEAT", 
@@ -204,12 +204,14 @@ data$EVTYPE <- sapply(data$EVTYPE, merge_evtypes)
 
 ## Results
 
-1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?  
+When analysing the data we're looking at aggregated total numbers for fatalities, injuries and property and crop damage.
+
+#### Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?  
 
 Calculate total fatalities and injuries per event type and select the top ten harmful events:
 
 ```{r population_damage}
-fatalities <- data
+fatalities <- data %>%
         ## group data by event type
         group_by(EVTYPE) %>%
         ## calculate total fatalities per event type
@@ -259,7 +261,7 @@ ggplot(data = injuries, aes(x = EVTYPE, y = INJURIES)) +
 
 The plot above shows that the weather event that causes the most injuries are tornadoes
 
-2. Across the United States, which types of events have the greatest economic consequences?  
+#### Across the United States, which types of events have the greatest economic consequences?  
  
 ```{r economic_damage}
 economic_damage <- data %>%
@@ -272,7 +274,7 @@ economic_damage <- data %>%
 
 Plot economic damage by event type:
 
-```{r plot_injuries}
+```{r plot_economic_damage}
 ggplot(data = economic_damage, aes(x = EVTYPE, y = DAMAGE)) +
         geom_bar(position="dodge", stat='identity', colour="black", fill="blue") +
         coord_flip() +
